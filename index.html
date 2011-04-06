@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+<title>Canvas Playground</title>
+<style>
+canvas { border: dotted 1px #999; width: 80%; height: 80%; margin: 0 auto; display: block; }
+#controls { width: 80%; margin: 10px auto;}
+.tools { float: left; }
+.actions { float: right; }
+a { cursor: pointer; }
+a.toggler { padding: 0 5px; }
+a.toggler.on { background: black; color: white; }
+</style>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+<script>
+$(function () {
+    var $canvas = $('canvas'),
+        context = $canvas[0].getContext('2d'),
+        drawing = false,
+        $coords = $('#coords'),
+        off     = $canvas.offset(),
+        start;
+        
+    // give the canvas HTML attributes to ensure 1px = 1 canvas unit
+    $canvas.attr('width', $canvas.outerWidth());
+    $canvas.attr('height', $canvas.outerHeight());
+    
+    // make toggle items behave like radio buttons
+    $('.toggler').click(function () {
+        if (!drawing) {
+            var cur = this;
+            $('.toggler').each(function () {
+                $(this).toggleClass('on', this == cur);
+            });
+        }
+        return false;
+    });
+
+    // clear out the canvas
+    $('#clear').click(function () {
+        $canvas[0].width = $canvas[0].width;
+        return false;
+    });
+    
+    // track mouse movements
+    $canvas.bind('mousemove', function (e) {
+        $coords.text((e.pageX - off.left) + ', ' + (e.pageY - off.top));
+    });
+    
+    // do something with the canvas
+    $canvas.click(function (e) {
+        var tool = $('.toggler.on:first').attr('id'),
+            x    = e.pageX - off.left,
+            y    = e.pageY - off.top;
+        drawing = !drawing;
+        if (drawing) {
+            start = {x: x, y: y};
+        }
+        else {
+            if ('line' === tool) {
+                context.moveTo(start.x, start.y);
+                context.lineTo(x, y);
+            }
+            else {
+                context.fillRect(start.x, start.y, x - start.x, y - start.y);
+            }
+            context.strokeStyle = "#333";
+            context.stroke();
+        }
+        return false;
+    });
+});
+</script>
+</head>
+<body>
+<canvas></canvas>
+<div id="controls">
+<div id="coords"></div>
+<div class="tools">
+    <a id="line" class="toggler on">line</a>
+    <a id="rect" class="toggler">rect</a>
+</div>
+<div class="actions">
+    <button id="clear">Clear</button>
+</div>
+</div>
+</body>
+</html>
