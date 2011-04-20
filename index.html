@@ -15,15 +15,17 @@ a.toggler.on { background: black; color: white; }
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
 <script>
 (function ($) {
-    var commands;
+    var chainable, returnable;
     
     // the plugin body
     $.fn.canvas = function () {
         var init   = false,
+            chain  = true,
             args   = Array.prototype.slice.call(arguments),
             first  = args[0],
+            opts   = {},
             action = null,
-            opts   = {};
+            ret;
         
         // initialization - no arguments, or simply options
         if (!first || typeof(first) === 'object') {
@@ -33,32 +35,61 @@ a.toggler.on { background: black; color: white; }
         
         // calling a specific command
         else if (typeof(first) === 'string') {
-            action = first;
+            if (typeof(returnable[first]) === 'function') {
+                action = returnable[first];
+                chain = false;
+            }
+            else if (typeof(chainable[first]) === 'function') {
+                action = chainable[first];
+            }
         }
         
-        // return .each() for chaining
-        return this.each(function () {
-            
-            // initialization
-            if (init) {
-                initialize.call($(this), opts);
-            }
-            
-            // calling a specific command - pass arguments along to it
-            else if (action && typeof(commands[action]) === 'function') {
-                commands[action].apply($(this), args.slice(1));
-            }
-        });
+        // we can chain, since we're initializing, or the command being called 
+        // doesn't need to return a value
+        if (chain) {
+            ret = this.each(function () {
+                // initialization
+                if (init) {
+                    initialize.call($(this), opts);
+                }
+                
+                // calling a specific command - pass arguments along to it
+                else if (action) {
+                   action.apply($(this), args.slice(1));
+                }
+                
+            });
+        }
+        
+        // we can't chain
+        else if (action) {
+            ret = action.apply($(this[0]), args.slice(1));
+        }
+        
+        return ret;
     };
     
-    // commands that can be passed in to the plugin. The jQuery-wrapped 'canvas' 
-    // element will be set to 'this'
-    commands = {
+    // commands that can be passed in to the plugin, for chaining. The 
+    // jQuery-wrapped 'canvas' element will be set to 'this'
+    chainable = {
         
         // clearing out a canvas simply entails resetting its width to itself
         clear : function () {
             this[0].width = this[0].width;
         }
+        
+    };
+    
+    // commands whose values will be returned to the caller.  These commands 
+    // cannot be chained.  'this' will be set to the first element of the jQuery 
+    // set.
+    returnable = {
+        
+        // get my context
+        context : function () {
+            return this.data('canvas-context');
+        }
+        
     };
     
     // private methods
@@ -67,7 +98,8 @@ a.toggler.on { background: black; color: white; }
     function initialize(opts) {
         this
             .attr('width', this.outerWidth())
-            .attr('height', this.outerHeight());
+            .attr('height', this.outerHeight())
+            .data('canvas-context', this[0].getContext('2d'));
     }
     
     // default options
