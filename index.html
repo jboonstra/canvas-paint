@@ -14,8 +14,69 @@ a.toggler.on { background: black; color: white; }
 </style>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
 <script>
+(function ($) {
+    var commands;
+    
+    // the plugin body
+    $.fn.canvas = function () {
+        var init   = false,
+            args   = Array.prototype.slice.call(arguments),
+            first  = args[0],
+            action = null,
+            opts   = {};
+        
+        // initialization - no arguments, or simply options
+        if (!first || typeof(first) === 'object') {
+            opts = $.extend({}, $.fn.canvas.defaults, first);
+            init = true;
+        }
+        
+        // calling a specific command
+        else if (typeof(first) === 'string') {
+            action = first;
+        }
+        
+        // return .each() for chaining
+        return this.each(function () {
+            
+            // initialization
+            if (init) {
+                initialize.call($(this), opts);
+            }
+            
+            // calling a specific command - pass arguments along to it
+            else if (action && typeof(commands[action]) === 'function') {
+                commands[action].apply($(this), args.slice(1));
+            }
+        });
+    };
+    
+    // commands that can be passed in to the plugin. The jQuery-wrapped 'canvas' 
+    // element will be set to 'this'
+    commands = {
+        
+        // clearing out a canvas simply entails resetting its width to itself
+        clear : function () {
+            this[0].width = this[0].width;
+        }
+    };
+    
+    // private methods
+    
+    // do one-time configuration
+    function initialize(opts) {
+        this
+            .attr('width', this.outerWidth())
+            .attr('height', this.outerHeight());
+    }
+    
+    // default options
+    $.fn.canvas.defaults = {};
+    
+})(jQuery);
+
 $(function () {
-    var $canvas    = $('canvas'),
+    var $canvas    = $('canvas').canvas(),
         $coords    = $('#coords'),
         off        = $canvas.offset(),
         $lockables = $('.toggler');
@@ -33,17 +94,13 @@ $(function () {
 
     // clear out the canvas
     $('#clear').click(function () {
-        clearCanvas();
+        $canvas.canvas('clear');
         return false;
     });
     
     // track mouse movements
     $canvas
     
-        // give the canvas HTML attributes to ensure 1px = 1 canvas unit
-        .attr('width', $canvas.outerWidth())
-        .attr('height', $canvas.outerHeight())
-        
         // track mouse movements to update coordinates and handle drawing, if 
         // needed
         .each(function () {
@@ -55,7 +112,7 @@ $(function () {
                     $coords.text(x + ', ' + y);
                     if (drawing) {
                         if ('line' === tool) {
-                            clearCanvas();
+                            $canvas.canvas('clear');
                             drawing.beginPath();
                             drawing.moveTo(start.x, start.y);
                             drawing.lineTo(x, y);
@@ -86,7 +143,7 @@ $(function () {
                     
                     // if we are stopping drawing, get rid of the context
                     else {
-                        clearCanvas();
+                        $canvas.canvas('clear');
                         drawing.beginPath();
                         drawing.moveTo(start.x, start.y);
                         drawing.lineTo(x, y);
@@ -99,10 +156,6 @@ $(function () {
                     return false;
                 });
         });
-    
-    function clearCanvas() {
-        $canvas[0].width = $canvas[0].width;
-    }
 });
 </script>
 </head>
